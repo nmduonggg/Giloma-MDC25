@@ -102,7 +102,7 @@ def infer_model(model):
 
 if __name__ == '__main__':
     # Start training
-    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_wO_new_data.pth'
+    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_wO.pth'
     model.load_state_dict(torch.load(checkpoint_path))
     model.to(DEVICE)
     submission = infer_model(model)
