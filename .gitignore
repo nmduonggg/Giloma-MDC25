@@ -1,0 +1,4 @@
+_PROCESSED_DATA/*
+_RAW_DATA/*
+src/checkpoints/*
+src/submission.csv
