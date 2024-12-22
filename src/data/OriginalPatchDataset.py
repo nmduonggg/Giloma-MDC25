@@ -9,9 +9,8 @@ from data import transforms
 class OriginalPatchDataset(Dataset):
     def __init__(self, image_dir, data_path, mode):
         super().__init__()
-        assert(mode in ['training', 'testing', 'valid'])
-        self.mode = mode
-        if mode=='valid': self.mode='training'
+        assert(mode in ['training', 'testing', 'valid', 'real_testing'])
+        self.mode = mode if mode=='real_testing' else 'training'
         self.image_dir = image_dir
         self.data_list = json.load(open(data_path))
         
@@ -38,7 +37,7 @@ class OriginalPatchDataset(Dataset):
         img = Image.open(img_path).convert("RGB")
         
         x = self.transforms(img)
-        if self.mode=='testing':
+        if self.mode=='real_testing':
             return x, data, ox
         
         cls_num = self.label2idx[data['label']]

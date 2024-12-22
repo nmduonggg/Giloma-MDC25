@@ -93,9 +93,9 @@ def convert2mask(json_file, out_dir, prefix):
 if __name__=='__main__':
     
     gid = 0
-    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_RAW_DATA/Glioma_MDC_2025_training/Glioma_MDC_2025_training'
+    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_RAW_DATA/Glioma_MDC_2025_test/Glioma_MDC_2025_test'
     out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches'
-    prefix = 'training'
+    prefix = 'real_testing'
     
     out_prefix_dir = os.path.join(out_dir, prefix)
     os.makedirs(out_prefix_dir, exist_ok=True)
@@ -108,7 +108,7 @@ if __name__=='__main__':
     
     # for fn in os.listdir(raw_dir):
     for i in range(num_instances):
-        fn = f"{prefix}{(i+1):04d}.json"
+        fn = f"{prefix if 'real' not in prefix else 'testing'}{(i+1):04d}.json"
         # if not fn.endswith('.json'): continue
         path = os.path.join(raw_dir, fn)
     
@@ -116,7 +116,7 @@ if __name__=='__main__':
         datas += data
         he_cnt += 1
     
-    json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'testing' else 'all'}_data.json")
+    json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
     with open(json_save_fn, 'w') as f:
         json.dump(datas, f, indent=4)
     

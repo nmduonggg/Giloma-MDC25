@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 from data.IndependentPatchDataset import IndependentPatchDataset
 from data.OriginalPatchDataset import OriginalPatchDataset
 # from model.resnet50 import ResNet50
-from model.resnet50_wOriginal import ResNet50
+# from model.resnet50_wOriginal import ResNet50
+from model.ProvGigaPath_wOriginal import ProvGigaPath
 import os
 import time
 import pandas as pd
@@ -24,12 +25,12 @@ def collate_infer(batch):
 # ============================ #
 
 # Paths to your data directories
-TEST_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/testing'       # Replace with your training data path
-test_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/testing_data.json'
+TEST_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/real_testing'       # Replace with your training data path
+test_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/real_testing_data.json'
 
 
 # Training hyperparameters
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 NUM_EPOCHS = 30
 LEARNING_RATE = 0.001
 MOMENTUM = 0.9
@@ -51,12 +52,14 @@ os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 # Initialize datasets
 # test_dataset = IndependentPatchDataset(image_dir=TEST_DIR, data_path=test_data_path, mode='testing')  # Add transforms if needed    # Add transforms if needed
 # Initialize dataloaders
-test_dataset = OriginalPatchDataset(image_dir=TEST_DIR, data_path=test_data_path, mode='testing')
+test_dataset = OriginalPatchDataset(image_dir=TEST_DIR, data_path=test_data_path, mode='real_testing')
 # Initialize dataloaders
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collate_infer, num_workers=NUM_WORKERS, drop_last=False)
 
 # Initialize the model
-model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+# model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+
+model = ProvGigaPath(num_classes=2)
 
 def infer_model(model):
     model.eval()
@@ -102,7 +105,7 @@ def infer_model(model):
 
 if __name__ == '__main__':
     # Start training
-    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_wO.pth'
+    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_titan_wO.pth'
     model.load_state_dict(torch.load(checkpoint_path))
     model.to(DEVICE)
     submission = infer_model(model)
