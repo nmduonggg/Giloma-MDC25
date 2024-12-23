@@ -51,8 +51,8 @@ test_dataset = OriginalPatchDataset(image_dir=TEST_DIR, data_path=test_data_path
 test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, drop_last=False)
 
 # Initialize the model
-# model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
-model = ProvGigaPath(num_classes=2)
+model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+# model = ProvGigaPath(num_classes=2)
 def infer_model(model):
     model.eval()
     dataloader = test_loader
@@ -96,7 +96,7 @@ def infer_model(model):
 
 if __name__ == '__main__':
     # Start training
-    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_titan_wO.pth'
+    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_resnet_wO.pth'
     model.load_state_dict(torch.load(checkpoint_path))
     model.to(DEVICE)
     metric = infer_model(model)

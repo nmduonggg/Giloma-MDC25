@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 if __name__=='__main__':
     
-    random.seed(0)
+    random.seed(123)
     
-    train_ratio = 0.6
+    train_ratio = 0.75
     val_ratio = 0.1
-    test_ratio = 0.3
+    test_ratio = 0.15
     
     json_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/all_data.json'
     out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches'

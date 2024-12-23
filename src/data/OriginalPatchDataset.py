@@ -5,6 +5,7 @@ import numpy as np
 import json
 from PIL import Image
 from data import transforms
+from labelme import utils as lbl_utils
 
 class OriginalPatchDataset(Dataset):
     def __init__(self, image_dir, data_path, mode):
@@ -18,25 +19,35 @@ class OriginalPatchDataset(Dataset):
             'Mitosis': 1, 'Non-mitosis': 0
         }
         
-        if mode=='training': self.transforms = transforms.TRAIN_TRANSFORMS
-        else: self.transforms = transforms.TEST_TRANSFORMS
+        if mode=='training': 
+            self.cell_transforms = transforms.CELL_TRANSFORMS
+            self.roi_transforms = transforms.ROI_TRANSFORMS
+        else: 
+            self.roi_transforms = transforms.ROI_TRANSFORMS
+            self.cell_transforms = transforms.TEST_TRANSFORMS
         
     def __len__(self):
-        return len(self.data_list)
+        return len(self.data_list) * 2 if self.mode != 'real_testing' else len(self.data_list)
     
     def __getitem__(self, idx):
-        data = self.data_list[idx]
+        data = self.data_list[idx % len(self.data_list)]
         
         ## get original large slide
-        original_img_path = data['original_json_file'].replace('.json', '.jpg')
-        ori_img = Image.open(original_img_path).convert("RGB")
-        ox = self.transforms(ori_img)
+        original_json_file = data['original_json_file']
+        original_data = json.load(open(original_json_file))
+        ori_img = lbl_utils.img_b64_to_arr(original_data.get("imageData"))
+        ori_img = Image.fromarray(ori_img).convert("RGB")
         
         img_path = os.path.join(self.image_dir, f"{self.mode}_{data['id']}.jpg")
-        
         img = Image.open(img_path).convert("RGB")
         
-        x = self.transforms(img)
+        if idx >= len(self.data_list):
+            img = transforms.horizontal_flip(img)
+            ori_img = transforms.horizontal_flip(img)
+        
+        x = self.cell_transforms(img)
+        ox = self.roi_transforms(ori_img)
+        
         if self.mode=='real_testing':
             return x, data, ox
         

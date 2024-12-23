@@ -3,3 +3,4 @@ _RAW_DATA/*
 src/checkpoints/*
 src/submission.csv
 keys.txt
+src/good_checkpoints/*

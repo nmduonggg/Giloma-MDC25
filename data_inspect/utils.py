@@ -34,7 +34,7 @@ def shape_to_mask(img_shape, points, shape_type=None, line_width=10, point_size=
     mask = np.array(mask, dtype=bool)
     return mask
     
-def get_bounding_box(polygon_points):
+def get_bounding_box(polygon_points, height, width):
     """
     Calculates the bounding box of a polygon.
 
@@ -46,17 +46,17 @@ def get_bounding_box(polygon_points):
     y_coordinates = [point[1] for point in polygon_points]
 
     # Find min and max for x and y
-    min_x = min(x_coordinates)
-    max_x = max(x_coordinates)
-    min_y = min(y_coordinates)
-    max_y = max(y_coordinates)
+    min_x = max(min(x_coordinates) - 10, 0)
+    max_x = min(max(x_coordinates) + 10, width)
+    min_y = max(min(y_coordinates) - 10, 0)
+    max_y = min(max(y_coordinates) + 10, height)
 
     return min_x, min_y, max_x, max_y
 
-# Example usage
-polygon_points = [(2, 3), (5, 11), (9, 5), (12, 8), (5, 6)]
-bounding_box = get_bounding_box(polygon_points)
-print("Bounding Box:", bounding_box)
+# # Example usage
+# polygon_points = [(2, 3), (5, 11), (9, 5), (12, 8), (5, 6)]
+# bounding_box = get_bounding_box(polygon_points, 100, 100)
+# print("Bounding Box:", bounding_box)
 
 
 def shapes_to_label(img_shape, shapes, label_name_to_value):
@@ -88,6 +88,7 @@ def shapes_to_label(img_shape, shapes, label_name_to_value):
 
 def shapes_to_independent_labels(img, shapes, label_name_to_value):
     
+    height, width = img.shape[:2]
     crops = []
     for shape in shapes:
         points = shape["points"]
@@ -97,7 +98,8 @@ def shapes_to_independent_labels(img, shapes, label_name_to_value):
         if isinstance(img, np.ndarray):
             img = PIL.Image.fromarray(img)
         
-        bbox = get_bounding_box(points)
+        bbox = get_bounding_box(points, height, width)
+        
         cropped = img.crop(bbox)
         crops.append((cropped, label, points))
         

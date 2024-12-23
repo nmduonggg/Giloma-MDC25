@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 # from data.IndependentPatchDataset import IndependentPatchDataset
 from data.OriginalPatchDataset import OriginalPatchDataset
-# from model.resnet50_wOriginal import ResNet50
+from model.resnet50_wOriginal import ResNet50
 from model.ProvGigaPath_wOriginal import ProvGigaPath
 from losses.classContrastiveLoss import ClassContrastiveLoss
 import os
@@ -62,7 +62,7 @@ dataset_sizes = {
 # ============================ #
 
 # Initialize the model
-model = ProvGigaPath(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
 
 # Move the model to the configured device
 model = model.to(DEVICE)
@@ -175,7 +175,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
             if phase=='val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
                 # Save the best model weights
-                torch.save(model.state_dict(), os.path.join(CHECKPOINT_DIR, 'best_model_titan_wO.pth'))
+                torch.save(model.state_dict(), os.path.join(CHECKPOINT_DIR, 'best_model_resnet_wO.pth'))
                 print(f"Best model updated at epoch {epoch + 1}")
 
         print()
@@ -193,6 +193,6 @@ if __name__ == '__main__':
     trained_model = train_model(model, criterion, optimizer, scheduler, num_epochs=NUM_EPOCHS)
 
     # Save the final trained model
-    final_model_path = os.path.join(CHECKPOINT_DIR, 'final_model_titan_wO.pth')
+    final_model_path = os.path.join(CHECKPOINT_DIR, 'final_model_resnet_wO.pth')
     torch.save(trained_model.state_dict(), final_model_path)
     print(f"Final model saved to {final_model_path}")
