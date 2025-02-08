@@ -7,11 +7,12 @@ from PIL import Image
 from data import transforms
 from labelme import utils as lbl_utils
 
-class OriginalPatchDataset(Dataset):
+class DualPatchDataset(Dataset):
     def __init__(self, image_dir, data_path, mode):
         super().__init__()
         assert(mode in ['training', 'testing', 'valid', 'real_testing'])
         self.mode = mode if mode=='real_testing' else 'training'
+        self._mode = mode # store original mode 
         self.image_dir = image_dir
         self.data_list = json.load(open(data_path))
         
@@ -27,7 +28,7 @@ class OriginalPatchDataset(Dataset):
             self.cell_transforms = transforms.TEST_TRANSFORMS
         
     def __len__(self):
-        return len(self.data_list) * 2 if 'test' not in self.mode else len(self.data_list)
+        return len(self.data_list) * 2 if 'test' not in self._mode else len(self.data_list)
     
     def __getitem__(self, idx):
         data = self.data_list[idx % len(self.data_list)]
@@ -47,7 +48,7 @@ class OriginalPatchDataset(Dataset):
         
         if idx >= len(self.data_list):
             img = transforms.horizontal_flip(img)
-            ori_img = transforms.horizontal_flip(ori_img)
+            ori_img = transforms.horizontal_flip(img)
         
         x = self.cell_transforms(img)
         ox = self.roi_transforms(ori_img)

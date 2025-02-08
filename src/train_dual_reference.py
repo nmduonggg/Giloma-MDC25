@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-# from data.IndependentPatchDataset import IndependentPatchDataset
+from data.DualPatchDataset import DualPatchDataset
 from data.OriginalPatchDataset import OriginalPatchDataset
-from model.resnet50_wOriginal import ResNet50
-from model.ProvGigaPath_wOriginal import ProvGigaPath
+from model.ResNet50_ProvKD_wOriginal import ResNetProvKD
+from model.ResNet50_ProvKD_wOriginal_v2 import ResNetProvKD_v2
+from model.ResNet50_wOriginal import ResNet50
 from losses.classContrastiveLoss import ClassContrastiveLoss
 import os
 import time
@@ -18,18 +19,23 @@ from sklearn.metrics import f1_score
 # ============================ #
 
 # Paths to your data directories
+# TRAIN_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/real_testing'
+# VAL_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/real_testing'
+# train_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/training_data.json'
+# valid_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/valid_data.json'
+
 TRAIN_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/training'       # Replace with your training data path
 VAL_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/training'           # Replace with your validation data path
 train_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/training_data.json'
 valid_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/valid_data.json'
 
 # Training hyperparameters
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 NUM_EPOCHS = 50
-LEARNING_RATE = 3e-5
+LEARNING_RATE = 1e-6
 MOMENTUM = 0.9
 WEIGHT_DECAY = 1e-4
-NUM_WORKERS = 4                        # Adjust based on your system
+NUM_WORKERS = 32                        # Adjust based on your system
 
 # Device configuration
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,8 +50,8 @@ os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 # ============================ #
 
 # Initialize datasets
-train_dataset = OriginalPatchDataset(image_dir=TRAIN_DIR, data_path=train_data_path, mode='training')  # Add transforms if needed
-val_dataset = OriginalPatchDataset(image_dir=VAL_DIR, data_path=valid_data_path, mode='valid')      # Add transforms if needed
+train_dataset = DualPatchDataset(image_dir=TRAIN_DIR, data_path=train_data_path, mode='training')  # Add transforms if needed
+val_dataset = DualPatchDataset(image_dir=VAL_DIR, data_path=valid_data_path, mode='valid')      # Add transforms if needed
 
 # Initialize dataloaders
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, drop_last=False)
@@ -62,17 +68,25 @@ dataset_sizes = {
 # ============================ #
 
 # Initialize the model
-model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+# model = ResNet50(num_classes=2)      # Set pretrained=True if you want to use pretrained weights
+# model = ResNetProvKD_v2(num_classes=2)
+model = ResNetProvKD(num_classes=2)
+ref_model = ResNetProvKD(num_classes=2)
+checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_ResNet_ProvKD_Dual_pretrain_augment_wO.pth'
+ref_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_ResNet_ProvKD_Dual_pretrain_augment_wO.pth'
+model.load_state_dict(torch.load(checkpoint_path))
+ref_model.load_state_dict(torch.load(ref_path))
 
 # Move the model to the configured device
 model = model.to(DEVICE)
+ref_model = ref_model.to(DEVICE)
 
 # ============================ #
 #     Loss Function & Optimizer  #
 # ============================ #
 
 # Define the loss function
-criterion = nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss(reduction='none')
 ctrs_loss = ClassContrastiveLoss()
 
 # Define the optimizer
@@ -80,13 +94,33 @@ optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 # Optionally, define a learning rate scheduler
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max')
+# scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max')
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, NUM_EPOCHS, eta_min=1e-8)
+
+def freeze_modules(model):
+    blacklist = ['classifier', 'main_enc']
+    for n, module in model.named_modules():
+        if all(item not in n for item in blacklist) or isinstance(module, nn.BatchNorm2d):
+            module.eval()
+        else:
+            # print(n)
+            pass
+    # pass
+    
+def infer_reference(inputs, context, ref_model, labels):
+    ref_model.eval()
+    with torch.no_grad():
+        outputs = model(inputs, context)[0]
+        _, preds = torch.max(outputs, 1)
+        
+    
+    return (preds == labels.data).int()
 
 # ============================ #
 #          Training Loop          #
 # ============================ #
 
-def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+def train_model(model, criterion, optimizer, scheduler, num_epochs=25, name='model'):
     """
     Trains the model and evaluates it on the validation set.
 
@@ -115,6 +149,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
             if phase == 'train':
                 model.train()  # Set model to training mode
                 dataloader = train_loader
+                freeze_modules(model)
             else:
                 model.eval()   # Set model to evaluation mode
                 dataloader = val_loader
@@ -136,12 +171,27 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 # Forward pass
                 # Track gradients only in train phase
                 if phase == 'train':
-                    outputs, features = model(inputs, context)
+                    
+                    kd_feat, cont_feat = None, None
+                    
+                    try:
+                        outputs, features = model(inputs, context)
+                    except: 
+                        outputs, features, cont_feat, kd_feat = model(inputs, context)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
-                    contrastive_loss = ctrs_loss(features, labels)
                     
-                    loss = loss + 0.01 * contrastive_loss
+                    ref_probs = infer_reference(inputs, context, ref_model, labels)
+                    ref_weights = (1 - ref_probs)
+                    loss = torch.mean(loss * (1 + ref_weights))
+                    
+                    contrastive_loss = ctrs_loss(features, labels)
+                    loss = loss + 0.1 * contrastive_loss
+                    
+                    
+                    if kd_feat is not None and cont_feat is not None:
+                        kd_loss = torch.mean((cont_feat - kd_feat).pow(2))
+                        loss = loss + 0.01 * kd_loss
 
                     # Backward pass and optimization only in train phase
                     loss.backward()
@@ -149,7 +199,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 
                 elif phase=='val':
                     with torch.no_grad():
-                        outputs, _ = model(inputs, context)
+                        outputs = model(inputs, context)[0]
                         _, preds = torch.max(outputs, 1)
 
                 # Statistics
@@ -175,7 +225,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
             if phase=='val' and epoch_f1 > best_f1:
                 best_f1 = epoch_f1
                 # Save the best model weights
-                torch.save(model.state_dict(), os.path.join(CHECKPOINT_DIR, 'best_model_resnet_wO.pth'))
+                torch.save(model.state_dict(), os.path.join(CHECKPOINT_DIR, f'best_model_{name}_wO.pth'))
                 print(f"Best model updated at epoch {epoch + 1}")
 
         print()
@@ -189,10 +239,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     return model
 
 if __name__ == '__main__':
+    
+    name = 'Resnet_ProvKD_Dual_finetune_augment_v2'
     # Start training
-    trained_model = train_model(model, criterion, optimizer, scheduler, num_epochs=NUM_EPOCHS)
+    trained_model = train_model(model, criterion, optimizer, scheduler, num_epochs=NUM_EPOCHS, name=name)
 
     # Save the final trained model
-    final_model_path = os.path.join(CHECKPOINT_DIR, 'final_model_resnet_wO.pth')
-    torch.save(trained_model.state_dict(), final_model_path)
-    print(f"Final model saved to {final_model_path}")
+    # final_model_path = os.path.join(CHECKPOINT_DIR, f'final_model_{name}_wO.pth')
+    # torch.save(trained_model.state_dict(), final_model_path)
+    # print(f"Final model saved to {final_model_path}")

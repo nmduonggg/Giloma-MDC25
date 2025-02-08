@@ -46,10 +46,10 @@ def get_bounding_box(polygon_points, height, width):
     y_coordinates = [point[1] for point in polygon_points]
 
     # Find min and max for x and y
-    min_x = max(min(x_coordinates) - 10, 0)
-    max_x = min(max(x_coordinates) + 10, width)
-    min_y = max(min(y_coordinates) - 10, 0)
-    max_y = min(max(y_coordinates) + 10, height)
+    min_x = max(min(x_coordinates) - 20, 0)
+    max_x = min(max(x_coordinates) + 20, width)
+    min_y = max(min(y_coordinates) - 20, 0)
+    max_y = min(max(y_coordinates) + 20, height)
 
     return min_x, min_y, max_x, max_y
 

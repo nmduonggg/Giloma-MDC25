@@ -54,49 +54,50 @@ def convert2mask(json_file, out_dir, prefix):
     img = lbl_utils.img_b64_to_arr(imageData)
 
     label_name_to_value = {"_background_": 0}
-    for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+    for shape in sorted(data["shapes"], key=lambda x: x["label"])[:1]:
         label_name = shape["label"]
         if label_name in label_name_to_value:
             label_value = label_name_to_value[label_name]
         else:
             label_value = len(label_name_to_value)
             label_name_to_value[label_name] = label_value
-    lbl, _ = utils.shapes_to_label(img.shape, data["shapes"], label_name_to_value)
+    lbl, _ = utils.shapes_to_label(img.shape, data["shapes"][:1], label_name_to_value)
     
     independent_crops = utils.shapes_to_independent_labels(img, data['shapes'], label_name_to_value)    # (PIL image, label)
 
     label_names = [None] * (max(label_name_to_value.values()) + 1)
     for name, value in label_name_to_value.items():
-        label_names[value] = name
+        label_names[value] = "Blank"
         
     lbl_viz = imgviz.label2rgb(
-        lbl, imgviz.asgray(img), label_names=label_names, loc="rb"
+        lbl, img, label_names=None
     )
 
-    PIL.Image.fromarray(img).save(osp.join('./', f"img_{prefix}_{height}.png"))
-    lbl_utils.lblsave(osp.join('./', f"label_{prefix}_{height}.png"), lbl)
-    PIL.Image.fromarray(lbl_viz).save(osp.join('./', f"labelviz_{prefix}_{height}.png"))
+    os.makedirs('./examples', exist_ok=True)
+    PIL.Image.fromarray(img).save(osp.join('./examples', f"img_{prefix}_{height}.png"))
+    lbl_utils.lblsave(osp.join('./examples', f"label_{prefix}_{height}.png"), lbl)
+    PIL.Image.fromarray(lbl_viz).save(osp.join('./examples', f"labelviz_{prefix}_{height}.png"))
     
-    datas = []
-    for image, label, points in independent_crops:
-        data = {
-            'id': gid,
-            'original_json_file': json_file,
-            'label': label,
-            'points': points
-        }
-        datas.append(data)
-        roi_path = os.path.join(out_dir, f"{prefix}_{gid}.jpg")
-        image.save(roi_path)
-        gid += 1
+    # datas = []
+    # for image, label, points in independent_crops:
+    #     data = {
+    #         'id': gid,
+    #         'original_json_file': json_file,
+    #         'label': label,
+    #         'points': points
+    #     }
+    #     datas.append(data)
+        # roi_path = os.path.join(out_dir, f"{prefix}_{gid}.jpg")
+        # image.save(roi_path)
+        # gid += 1
         
     return datas
 
 if __name__=='__main__':
     
     gid = 0
-    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_RAW_DATA/Glioma_MDC_2025_training/Glioma_MDC_2025_training'
-    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches'
+    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/raw_format'
+    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format'
     prefix = 'training'
     
     out_prefix_dir = os.path.join(out_dir, prefix)
@@ -117,13 +118,15 @@ if __name__=='__main__':
         data = convert2mask(path, out_dir=out_prefix_dir, prefix=prefix)
         datas += data
         he_cnt += 1
+        
+        break
     
-    json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
-    with open(json_save_fn, 'w') as f:
-        json.dump(datas, f, indent=4)
+    # json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
+    # with open(json_save_fn, 'w') as f:
+    #     json.dump(datas, f, indent=4)
     
         
-    print(f"[FINAL] Convert {he_cnt} images into {len(datas)} patches")
+    # print(f"[FINAL] Convert {he_cnt} images into {len(datas)} patches")
     
     # with open(path, 'r') as f:
     #     data = json.load(f)

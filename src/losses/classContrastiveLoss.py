@@ -1,20 +1,39 @@
 import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
+
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 class ClassContrastiveLoss(nn.Module):
-    ## consider binary only
-    def __init__(self):
+    def __init__(self, temperature=0.5):
         super().__init__()
-        
-    def forward(self, preds, labels):
-        bs, dim = preds.shape
-        norm_preds = F.normalize(preds, dim=-1)
-        sim_mat = norm_preds @ norm_preds.T
-        sim_mat = F.sigmoid(sim_mat)
-        label_mat = (labels.unsqueeze(0) == labels.unsqueeze(1)).long()
-        
-        # Compute cross-entropy loss element-wise between similarity_matrix and label_matrix
-        loss = - (label_mat * torch.log(sim_mat) + (1 - label_mat) * torch.log(1 - sim_mat))
-        
+        self.temperature = temperature
+
+    def forward(self, embeddings, labels):
+        batch_size = embeddings.shape[0]
+        norm_embeddings = F.normalize(embeddings, dim=1)
+
+        similarity_matrix = torch.matmul(norm_embeddings, norm_embeddings.T)
+
+        # Create positive and negative masks
+        positive_mask = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
+        negative_mask = (1 - positive_mask).float()
+
+        # Apply temperature
+        sim_matrix_temp = similarity_matrix / self.temperature
+
+        # Compute numerator and denominator in a vectorized manner
+        exp_sim = torch.exp(sim_matrix_temp)
+        numerator = exp_sim * positive_mask
+        denominator = exp_sim.sum(dim=1, keepdim=True)
+
+        # Avoid division by zero
+        numerator = numerator.clamp(min=1e-9)
+        loss = -torch.log(numerator / denominator)
+
+        if loss.numel() == 0:
+            return torch.tensor(0.0, device=embeddings.device)
+            
         return loss.mean()

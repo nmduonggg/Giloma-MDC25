@@ -7,11 +7,12 @@ from PIL import Image
 from data import transforms
 from labelme import utils as lbl_utils
 
-class OriginalPatchDataset(Dataset):
+class RichDualPatchDataset(Dataset):
     def __init__(self, image_dir, data_path, mode):
         super().__init__()
         assert(mode in ['training', 'testing', 'valid', 'real_testing'])
         self.mode = mode if mode=='real_testing' else 'training'
+        self._mode = mode # store original mode 
         self.image_dir = image_dir
         self.data_list = json.load(open(data_path))
         
@@ -19,15 +20,20 @@ class OriginalPatchDataset(Dataset):
             'Mitosis': 1, 'Non-mitosis': 0
         }
         
-        if mode=='training': 
-            self.cell_transforms = transforms.CELL_TRANSFORMS
-            self.roi_transforms = transforms.ROI_TRANSFORMS
-        else: 
-            self.roi_transforms = transforms.ROI_TRANSFORMS
-            self.cell_transforms = transforms.TEST_TRANSFORMS
+        if self._mode=='training':
+            self.transforms = transforms.get_train_transforms(224)
+        else:
+            self.transforms = transforms.get_valid_transforms(224)
+        
+        # if mode=='training': 
+        #     self.cell_transforms = transforms.CELL_TRANSFORMS
+        #     self.roi_transforms = transforms.ROI_TRANSFORMS
+        # else: 
+        #     self.roi_transforms = transforms.ROI_TRANSFORMS
+        #     self.cell_transforms = transforms.TEST_TRANSFORMS
         
     def __len__(self):
-        return len(self.data_list) * 2 if 'test' not in self.mode else len(self.data_list)
+        return len(self.data_list)
     
     def __getitem__(self, idx):
         data = self.data_list[idx % len(self.data_list)]
@@ -45,12 +51,14 @@ class OriginalPatchDataset(Dataset):
             img_path = os.path.join(self.image_dir, f"real_testing_{data['id']}.jpg")
             img = Image.open(img_path).convert("RGB")
         
-        if idx >= len(self.data_list):
-            img = transforms.horizontal_flip(img)
-            ori_img = transforms.horizontal_flip(ori_img)
+        ori_img = np.asarray(ori_img)
+        h, w = ori_img.shape[:2]
+        img = img.resize((w, h))
+        img = np.asarray(img)
+        x, ox = self.transforms(images=[img, ori_img])['images']
         
-        x = self.cell_transforms(img)
-        ox = self.roi_transforms(ori_img)
+        # x = self.cell_transforms(img)
+        # ox = self.roi_transforms(ori_img)
         
         if self.mode=='real_testing':
             return x, data, ox

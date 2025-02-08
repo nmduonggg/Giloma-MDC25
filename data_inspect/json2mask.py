@@ -67,9 +67,9 @@ def convert2mask(json_file, out_dir, prefix):
     for name, value in label_name_to_value.items():
         label_names[value] = name
         
-    lbl_viz = imgviz.label2rgb(
-        lbl, imgviz.asgray(img), label_names=label_names, loc="rb"
-    )
+    # lbl_viz = imgviz.label2rgb(
+    #     lbl, imgviz.asgray(img)
+    # )
 
     # PIL.Image.fromarray(img).save(osp.join('./', f"img_{prefix}.png"))
     # lbl_utils.lblsave(osp.join('./', f"label_{prefix}.png"), lbl)
@@ -93,8 +93,8 @@ def convert2mask(json_file, out_dir, prefix):
 if __name__=='__main__':
     
     gid = 0
-    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_RAW_DATA/Glioma_MDC_2025_test/Glioma_MDC_2025_test'
-    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches'
+    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/raw_format'
+    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format'
     prefix = 'real_testing'
     
     out_prefix_dir = os.path.join(out_dir, prefix)
@@ -103,12 +103,14 @@ if __name__=='__main__':
     he_cnt = 0
     datas = []
     
-    fns = [fn for fn in os.listdir(raw_dir)]
-    num_instances = len(fns) // 2
+    fns = list()
+    for fn in os.listdir(raw_dir):
+        if '.json' in fn: fns.append(fn)
+    num_instances = len(fns)
     
     # for fn in os.listdir(raw_dir):
     for i in range(num_instances):
-        fn = f"{prefix if 'real' not in prefix else 'testing'}{(i+1):04d}.json"
+        fn = f"{prefix}{(i+1):04d}.json"
         # if not fn.endswith('.json'): continue
         path = os.path.join(raw_dir, fn)
     
