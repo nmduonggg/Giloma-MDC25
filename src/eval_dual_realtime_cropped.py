@@ -125,7 +125,7 @@ def infer_model(model):
 
 if __name__ == '__main__':
     # Start training
-    login('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')
+    login()
     checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_Resnet_Prov_Dual_scratch_augment_realtime_crop_local_context_wO.pth'
     # checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_Resnet_ProvKD_Dual_scratch_augment_realtime_crop_wO.pth'
     # checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/good_checkpoints/best_model_ResNet_Prov_dual_98,11.pth'
