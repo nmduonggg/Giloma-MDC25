@@ -12,7 +12,9 @@ class ResNet50(nn.Module):
         self.main_enc = enc
         self.classifier = nn.Linear(2048*2, num_classes)
         
-    def forward(self, x, context):
+    def forward(self, x):
+        context = x[:, :3, ...]
+        x = x[:, 3:, ...]
         x_main = self.main_enc(x)
         x_cont = self.context_processor(context)
         

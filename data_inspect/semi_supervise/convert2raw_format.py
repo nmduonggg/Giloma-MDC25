@@ -89,8 +89,8 @@ def infer_all(folder, model, out_folder='./'):
         
         
 def main():
-    folder = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_RAW_DATA/122824/Data_122824/Glioma_MDC_2025_training'
-    out_folder = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/raw_format'
+    folder = '/home/nmduongg/Gilioma-ISBI25/DATA/Glioma_MDC_2025_training'
+    out_folder = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/semi_supervise/processed_format'
     os.makedirs(out_folder, exist_ok=True)
     
     model = load_model()

@@ -14,7 +14,7 @@ model.nms_thresh=0.2
 model.eval()
 
 # Load input
-img = Image.open('../../_RAW_DATA/122824/Data_122824/Glioma_MDC_2025_training/training0002.jpg')
+img = Image.open('/home/nmduongg/Gilioma-ISBI25/DATA/Glioma_MDC_2025_training/training0001.jpg')
 img = np.array(img.convert('RGB'))
 
 # Run model

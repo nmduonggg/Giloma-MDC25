@@ -28,7 +28,147 @@ def get_train_transforms(image_size=256):
         A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
         
         # Random brightness and contrast adjustments
-        A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        
+        # Adding noise
+        A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
+        
+        # Normalize the image (assuming images are in [0, 255])
+        A.Normalize(mean=[0.485, 0.456, 0.406],    # Normalize the tensor with mean and std
+                         std=[0.229, 0.224, 0.225], max_pixel_value=255.0),
+        
+        # Convert to tensor
+        ToTensorV2(),
+    ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+    
+    
+## loop 4
+# def get_train_transforms_strong(image_size=256):
+#     return A.Compose([
+#         # Ensure the target remains centered by limiting spatial transformations
+#         A.Resize(height=int(image_size*1.3), width=int(image_size*1.3)),
+#         A.RandomCrop(height=image_size, width=image_size, p=0.8),
+#         A.Resize(height=image_size, width=image_size),
+#         # A.LongestMaxSize(max_size=224),
+        
+#         # A.PadIfNeeded(224, 224),
+        
+#         # Horizontal and Vertical flips
+#         A.HorizontalFlip(p=0.5),
+#         A.VerticalFlip(p=0.5),
+        
+#         # Random rotations around the center
+#         A.Rotate(limit=75, p=0.5, border_mode=0),
+        
+#         # Elastic transformations can help with subtle deformations
+#         A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
+        
+#         # Random brightness and contrast adjustments
+#         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        
+#         # Adding noise
+#         A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
+        
+#         # Normalize the image (assuming images are in [0, 255])
+#         A.Normalize(mean=[0.485, 0.456, 0.406],    # Normalize the tensor with mean and std
+#                          std=[0.229, 0.224, 0.225], max_pixel_value=255.0),
+        
+#         # Convert to tensor
+#         ToTensorV2(),
+#     ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+    
+    
+# def get_train_transforms_strong(image_size=256):
+#     return A.Compose([
+#         # Ensure the target remains centered by limiting spatial transformations
+#         A.Resize(height=int(image_size*1.2), width=int(image_size*1.2)),
+#         A.RandomCrop(height=image_size, width=image_size, p=0.8),
+#         A.Resize(height=image_size, width=image_size),
+#         # A.LongestMaxSize(max_size=224),
+        
+#         # A.PadIfNeeded(224, 224),
+        
+#         # Horizontal and Vertical flips
+#         A.HorizontalFlip(p=0.5),
+#         A.VerticalFlip(p=0.5),
+        
+#         # Random rotations around the center
+#         A.Rotate(limit=60, p=0.5, border_mode=0),
+        
+#         # Elastic transformations can help with subtle deformations
+#         A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
+        
+#         # Random brightness and contrast adjustments
+#         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        
+#         # Adding noise
+#         A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
+        
+#         # Normalize the image (assuming images are in [0, 255])
+#         A.Normalize(mean=[0.485, 0.456, 0.406],    # Normalize the tensor with mean and std
+#                          std=[0.229, 0.224, 0.225], max_pixel_value=255.0),
+        
+#         # Convert to tensor
+#         ToTensorV2(),
+#     ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+    
+    
+#### LOOP 2 - DONOT REMOVE ####
+# def get_train_transforms_strong(image_size=256):
+#     return A.Compose([
+#         # Ensure the target remains centered by limiting spatial transformations
+#         A.Resize(height=int(image_size*1.2), width=int(image_size*1.2)),
+#         A.RandomCrop(height=image_size, width=image_size, p=0.2),
+#         A.Resize(height=image_size, width=image_size),
+#         # A.LongestMaxSize(max_size=224),
+        
+#         # A.PadIfNeeded(224, 224),
+        
+#         # Horizontal and Vertical flips
+#         A.HorizontalFlip(p=0.5),
+#         A.VerticalFlip(p=0.5),
+        
+#         # Random rotations around the center
+#         A.Rotate(limit=30, p=0.5, border_mode=0),
+        
+#         # Elastic transformations can help with subtle deformations
+#         A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
+        
+#         # Random brightness and contrast adjustments
+#         A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+        
+#         # Adding noise
+#         A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),
+        
+#         # Normalize the image (assuming images are in [0, 255])
+#         A.Normalize(mean=[0.485, 0.456, 0.406],    # Normalize the tensor with mean and std
+#                          std=[0.229, 0.224, 0.225], max_pixel_value=255.0),
+        
+#         # Convert to tensor
+#         ToTensorV2(),
+#     ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+    
+## LOOP 1
+def get_train_transforms_strong(image_size=256):
+    return A.Compose([
+        # Ensure the target remains centered by limiting spatial transformations
+        A.Resize(height=image_size, width=image_size),
+        # A.LongestMaxSize(max_size=224),
+        
+        # A.PadIfNeeded(224, 224),
+        
+        # Horizontal and Vertical flips
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        
+        # Random rotations around the center
+        A.Rotate(limit=15, p=0.5, border_mode=0),
+        
+        # Elastic transformations can help with subtle deformations
+        A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=0.2),
+        
+        # Random brightness and contrast adjustments
+        # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
         
         # Adding noise
         A.GaussNoise(var_limit=(10.0, 50.0), p=0.3),

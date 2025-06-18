@@ -7,12 +7,13 @@ if __name__=='__main__':
     
     random.seed(123)
     
-    train_ratio = 0.8
-    val_ratio = 0.2
+    train_ratio = 0.5
+    val_ratio = 0.5
     test_ratio = 0.0
     
-    json_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/all_data.json'
-    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format/'
+    json_path = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/by_patches/all_data.json'
+    out_dir = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/by_patches_Semi_loop2'
+    os.makedirs(out_dir, exist_ok=True)
     datas = json.load(open(json_path))
     
     count_dict = {}

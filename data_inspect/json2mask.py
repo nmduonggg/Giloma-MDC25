@@ -2,15 +2,118 @@ import numpy as np
 import json
 import base64
 import cv2
-import imgviz
+from PIL import Image
 
 import os
 import os.path as osp
 import PIL
+from manual_prompt import *
 
 import utils
 from labelme import utils as lbl_utils
+from tqdm import tqdm
+# from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 
+
+import base64
+# from openai import OpenAI
+
+# client = OpenAI()
+# Load the model in half-precision on the available device(s)
+# llm_model = Qwen2_5_VLForConditionalGeneration.from_pretrained("Qwen/Qwen2.5-VL-7B-Instruct", device_map="auto")
+# processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-7B-Instruct")
+
+# Function to encode the image
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
+# def generate_visual_prop_qwen(image_path, label):
+
+#     # Image
+#     image = Image.open(image_path)
+#     image = image.resize((336, 336))
+
+#     conversation = [
+#         {
+#             "role":"user",
+#             "content":[
+#                 {
+#                     "type":"image",
+#                 },
+#                 {
+#                     "type":"text",
+#                     "text": DESCRIBE_PROMPT
+#                 }
+#             ]
+#         }
+#     ]
+
+
+#     # Preprocess the inputs
+#     text_prompt = processor.apply_chat_template(conversation, add_generation_prompt=True)
+#     # Excepted output: '<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Describe this image.<|im_end|>\n<|im_start|>assistant\n'
+
+#     inputs = processor(text=[text_prompt], images=[image], padding=True, return_tensors="pt")
+#     inputs = inputs.to('cuda')
+
+#     # Inference: Generation of the output
+#     output_ids = llm_model.generate(**inputs, max_new_tokens=2000)
+#     generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, output_ids)]
+#     content = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
+#     # feature_ans_pairs = {}
+#     # print(content)
+#     # feature_ans_pairs = {
+#     #     k.strip().lower(): {'text': v.strip().lower().replace(' ', '_'), 'binary': int(idx.strip())}
+#     #     for pair in content.split('\n') if ':' in pair
+#     #     for k, v, idx in [pair.split(':', 2)]  # Ensures only three values are extracted
+#     # }
+#     # feature_ans_pairs = {k.replace(' ', '_'): v for k, v in feature_ans_pairs.items()}
+#     # return feature_ans_pairs
+#     return content
+
+# def generate_visual_prop(image_path):
+#     # Getting the Base64 string
+#     base64_image = encode_image(image_path)
+    
+#     response = client.chat.completions.create(
+#         model="gpt-4o-mini",
+#         messages=[
+#             {
+#                 "role": "developer",
+#                 "content": SYSTEM_PROMPT
+#             },
+#             {
+#                 "role": "user",
+#                 "content": [
+#                     {
+#                         "type": "text",
+#                         "text": PROP_PROMPT,
+#                     },
+#                     {
+#                         "type": "image_url",
+#                         "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+#                     },
+#                 ],
+#             }
+#         ],
+#     )
+
+#     content = response.choices[0].message.content
+#     print(content)
+#     # feature_ans_pairs = {k: v for k, v in pair.split(':') for pair in content.split('/n')}
+#     feature_ans_pairs = {}
+#     try:
+#         feature_ans_pairs = {
+#             k.strip().lower(): {'text': v.strip().lower().replace(' ', '_'), 'binary': int(idx.strip())}
+#             for pair in content.split('\n') if ':' in pair
+#             for k, v, idx in [pair.split(':', 2)]  # Ensures only three values are extracted
+#         }
+#         feature_ans_pairs = {k.replace(' ', '_'): v for k, v in feature_ans_pairs.items()}
+#     except:
+#         print(content)
+#     return feature_ans_pairs
+    
 def blend_images(image1, image2, alpha, beta, gamma=0.0):
     """
     Blends two images together using weighted addition.
@@ -38,7 +141,7 @@ def blend_images(image1, image2, alpha, beta, gamma=0.0):
 
     return blended_image
 
-def convert2mask(json_file, out_dir, prefix):
+def convert2mask(json_file, out_dir, prefix, gen_visual=False):
     global gid
     
     data = json.load(open(json_file))
@@ -61,7 +164,7 @@ def convert2mask(json_file, out_dir, prefix):
             label_name_to_value[label_name] = label_value
     lbl, _ = utils.shapes_to_label(img.shape, data["shapes"], label_name_to_value)
     
-    independent_crops = utils.shapes_to_independent_labels(img, data['shapes'], label_name_to_value)    # (PIL image, label)
+    independent_crops = utils.shapes_to_independent_labels(img, data['shapes'], old_cut=False)    # (PIL image, label)
 
     label_names = [None] * (max(label_name_to_value.values()) + 1)
     for name, value in label_name_to_value.items():
@@ -86,6 +189,9 @@ def convert2mask(json_file, out_dir, prefix):
         datas.append(data)
         roi_path = os.path.join(out_dir, f"{prefix}_{gid}.jpg")
         image.save(roi_path)
+        # if gen_visual: 
+        #     feature_ans = generate_visual_prop_qwen(roi_path, label)
+        #     data['visual_property'] = feature_ans
         gid += 1
         
     return datas
@@ -93,8 +199,8 @@ def convert2mask(json_file, out_dir, prefix):
 if __name__=='__main__':
     
     gid = 0
-    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/raw_format'
-    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format'
+    raw_dir = '/home/nmduongg/Gilioma-ISBI25/DATA/Glioma_MDC_2025_test'
+    out_dir = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/OneShotTesting/Reprocess_PublicTesting_to_Check'
     prefix = 'real_testing'
     
     out_prefix_dir = os.path.join(out_dir, prefix)
@@ -109,52 +215,26 @@ if __name__=='__main__':
     num_instances = len(fns)
     
     # for fn in os.listdir(raw_dir):
-    for i in range(num_instances):
-        fn = f"{prefix}{(i+1):04d}.json"
+    for i in tqdm(range(num_instances), total=num_instances):
+        # fn = f"{prefix}{(i+1):04d}.json"
+        ## For One Shot testing
+        fn = f"testing{(i+1):04d}.json"
         # if not fn.endswith('.json'): continue
         path = os.path.join(raw_dir, fn)
     
-        data = convert2mask(path, out_dir=out_prefix_dir, prefix=prefix)
+        data = convert2mask(path, out_dir=out_prefix_dir, prefix=prefix, gen_visual=False)
         datas += data
         he_cnt += 1
     
+        if i % 10 == 0:
+            json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
+            with open(json_save_fn, 'w') as f:
+                json.dump(datas, f, indent=4)
+                
     json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
     with open(json_save_fn, 'w') as f:
         json.dump(datas, f, indent=4)
+        
     
         
     print(f"[FINAL] Convert {he_cnt} images into {len(datas)} patches")
-    
-    # with open(path, 'r') as f:
-    #     data = json.load(f)
-        
-    # original_image = cv2.imread(image_path)
-
-    # # Extract points from the JSON
-    # shapes = data['shapes']
-    # mask_height, mask_width = data["imageHeight"], data["imageWidth"]
-    # # mask_height, mask_width = 512, 512
-    # mask = np.zeros((mask_height, mask_width), dtype=np.uint8)
-
-    # for shape in shapes:
-    #     name = shape['label']
-    #     print(name)
-    #     points = np.array(shape['points'], dtype=np.int32)
-
-    #     # Define the dimensions of the mask (example: 512x512)
-
-    #     # Draw the polygon on the mask
-    #     color = 255 if name=='Mitosis' else 50
-    #     cv2.fillPoly(mask, [points], color=255)  # Use 255 for white
-        
-    # original_image = cv2.resize(original_image, (mask_width, mask_height))
-    # height, width = original_image.shape[:2]
-    # mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-    # mask = cv2.resize(mask, (width, height))
-
-    # # Save the mask image (optional)
-    # cv2.imwrite("polygon_mask.jpg", mask)
-
-    # print(mask.shape, original_image.shape)
-    # blended = blend_images(original_image, mask, alpha=0.5, beta=0.5)
-    # cv2.imwrite("blended_image.jpg", blended)

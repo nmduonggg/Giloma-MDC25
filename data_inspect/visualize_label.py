@@ -54,51 +54,58 @@ def convert2mask(json_file, out_dir, prefix):
     img = lbl_utils.img_b64_to_arr(imageData)
 
     label_name_to_value = {"_background_": 0}
-    for shape in sorted(data["shapes"], key=lambda x: x["label"])[:1]:
+    for shape in sorted(data["shapes"], key=lambda x: x["label"]):
         label_name = shape["label"]
         if label_name in label_name_to_value:
             label_value = label_name_to_value[label_name]
         else:
             label_value = len(label_name_to_value)
-            label_name_to_value[label_name] = label_value
-    lbl, _ = utils.shapes_to_label(img.shape, data["shapes"][:1], label_name_to_value)
+            label_name_to_value[label_name] = 1
+    lbl, _ = utils.shapes_to_label(img.shape, data["shapes"], label_name_to_value)
     
-    independent_crops = utils.shapes_to_independent_labels(img, data['shapes'], label_name_to_value)    # (PIL image, label)
+    independent_crops = utils.shapes_to_independent_labels(img, data['shapes'], old_cut=False)    # (PIL image, label)
 
     label_names = [None] * (max(label_name_to_value.values()) + 1)
     for name, value in label_name_to_value.items():
         label_names[value] = "Blank"
         
+    color_map = np.array([
+        [255, 255, 255],
+        [0, 255, 0]
+    ], dtype=np.uint8)
     lbl_viz = imgviz.label2rgb(
-        lbl, img, label_names=None
+        lbl, img, label_names=None, alpha=0.2,
+        colormap=color_map
     )
 
-    os.makedirs('./examples', exist_ok=True)
-    PIL.Image.fromarray(img).save(osp.join('./examples', f"img_{prefix}_{height}.png"))
-    lbl_utils.lblsave(osp.join('./examples', f"label_{prefix}_{height}.png"), lbl)
-    PIL.Image.fromarray(lbl_viz).save(osp.join('./examples', f"labelviz_{prefix}_{height}.png"))
+    # os.makedirs('./examples', exist_ok=True)
+    # PIL.Image.fromarray(img).save(osp.join('./examples', f"img_{gid}.png"))
+    # lbl_utils.lblsave(osp.join('./examples', f"label_semi_{gid}.png"), lbl)
+    # PIL.Image.fromarray(lbl_viz).save(osp.join('./examples', f"labelviz_semi_{gid}.png"))
     
-    # datas = []
-    # for image, label, points in independent_crops:
-    #     data = {
-    #         'id': gid,
-    #         'original_json_file': json_file,
-    #         'label': label,
-    #         'points': points
-    #     }
-    #     datas.append(data)
-        # roi_path = os.path.join(out_dir, f"{prefix}_{gid}.jpg")
-        # image.save(roi_path)
-        # gid += 1
-        
+    datas = []
+    for image, label, points in independent_crops:
+        data = {
+            'id': gid,
+            'original_json_file': json_file,
+            'label': label,
+            'points': points
+        }
+        datas.append(data)
+        roi_path = os.path.join(out_dir, f"{prefix}_{gid}.jpg")
+        image.save(roi_path)
+        gid += 1
+    
     return datas
 
 if __name__=='__main__':
     
     gid = 0
-    raw_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/raw_format'
-    out_dir = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/semi_supervise/processed_format'
-    prefix = 'training'
+    # raw_dir = '/home/nmduongg/Gilioma-ISBI25/DATA/Glioma_MDC_2025_training'
+    raw_dir = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/semi_supervise/raw_format'
+    out_dir = '.'
+    # prefix = 'training'
+    prefix = 'real_testing'
     
     out_prefix_dir = os.path.join(out_dir, prefix)
     os.makedirs(out_prefix_dir, exist_ok=True)
@@ -111,15 +118,17 @@ if __name__=='__main__':
     
     # for fn in os.listdir(raw_dir):
     for i in range(num_instances):
-        fn = f"{prefix if 'real' not in prefix else 'testing'}{(i+1):04d}.json"
+        if i not in [13]: continue
+        fn = f"{prefix if 'real' not in prefix else 'real_testing'}{(i+1):04d}.json"
         # if not fn.endswith('.json'): continue
         path = os.path.join(raw_dir, fn)
     
         data = convert2mask(path, out_dir=out_prefix_dir, prefix=prefix)
         datas += data
         he_cnt += 1
+        gid += 1
         
-        break
+        if gid == 20: break
     
     # json_save_fn = os.path.join(out_dir, f"{prefix if prefix == 'real_testing' else 'all'}_data.json")
     # with open(json_save_fn, 'w') as f:

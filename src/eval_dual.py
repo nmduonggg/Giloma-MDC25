@@ -18,8 +18,8 @@ from sklearn.metrics import f1_score
 # ============================ #
 
 # Paths to your data directories
-TEST_DIR = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/training'       # Replace with your training data path
-test_data_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/_PROCESSED_DATA/by_patches/testing_data.json'
+TEST_DIR = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/by_patches_old/training'
+test_data_path = '/home/nmduongg/Gilioma-ISBI25/PROCESSED_DATA/by_patches_old/testing_data.json'
 
 
 # Training hyperparameters
@@ -126,7 +126,7 @@ def infer_model(model):
 if __name__ == '__main__':
     # Start training
     login()
-    checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/good_checkpoints/best_model_ResNet_Prov_dual_98,11.pth'
+    checkpoint_path = '/home/nmduongg/Gilioma-ISBI25/works/Giloma-MDC25/src/_good_checkpoints/best_model_ResNet_Prov_dual_98,11.pth'
     # checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/checkpoints/best_model_Resnet_ProvKD_Dual_scratch_augment_realtime_crop_wO.pth'
     # checkpoint_path = '/home/manhduong/ISBI25_Challenge/Giloma-MDC25/src/good_checkpoints/best_model_ResNet_Prov_dual_98,11.pth'
     model.load_state_dict(torch.load(checkpoint_path))

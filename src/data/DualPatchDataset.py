@@ -43,7 +43,7 @@ class DualPatchDataset(Dataset):
             img_path = os.path.join(self.image_dir, f"{self.mode}_{data['id']}.jpg")
             img = Image.open(img_path).convert("RGB")
         except:
-            img_path = os.path.join(self.image_dir, f"real_testing_{data['id']}.jpg")
+            img_path = os.path.join(self.image_dir, f"testing_{data['id']}.jpg")
             img = Image.open(img_path).convert("RGB")
         
         if idx >= len(self.data_list):

@@ -4,3 +4,11 @@ src/checkpoints/*
 src/submission.csv
 keys.txt
 src/good_checkpoints/*
+data_inspect
+LLaVA-Med
+_good_checkpoints
+checkpoints/*
+src/wrong_eval
+src/*.csv
+src/*.ipynb
+run_llavamed.py

@@ -31,9 +31,6 @@ class ResNetUNI_RealTime(nn.Module):
         self.tile_encoder.eval()    # tile for KD only
         
     def forward(self, x, context):
-        # x_main = self.main_projector(self.main_enc(x))
-        # x_cont = self.context_processor(context)
-        # x_cont = self.kd_projector(x_cont)
         
         with torch.no_grad():
             x_kd = self.tile_encoder(context)
